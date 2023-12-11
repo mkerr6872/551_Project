@@ -9,6 +9,7 @@ import re
 
 
 class DataPocket:
+    # Holds statistics on word and sentence length as well as the source dictionary with words: counts pairs
     def __init__(self, name):
         self.wordCount = 0.0
         self.sentCount = 0.0
@@ -23,12 +24,18 @@ class DataPocket:
         return f'Source: {self.source}, avgWordLen: {self.avgWordLength}, avgSentLen: {self.avgSentLength}'
         
 def logPoisson(avg, count):
+    # Calculates log of a poisson pmf
     return math.log(avg**count * math.exp(-avg) / math.factorial(count))
 
 def logGaussian(mu, sigma, x):
+    # Calculates log of a gaussian pdf
     return math.log((math.exp((-1/2)*(((x-mu)/sigma)**2)) * (1/(sigma*math.sqrt(2*math.pi)))))
 
 def dataAnalysis(document, Train):
+    # Parses a text document, calculates statistics and creates the source dictionary
+    # and creates and saves a Datapocket object in a .pickle file
+    # document - String: text file holding data to be parsed
+    # Train - Bool: flag for seperating training data and test data
     pkFile = open("objects/" + document + ".pickle", "ab")
     test = DataPocket(document)
     if Train == True:
@@ -63,6 +70,7 @@ def dataAnalysis(document, Train):
     pickle.dump(test, pkFile)
     
 def combineAnalysis():
+    # combines training data from all sources to create a "standard" or "average" object
     if os.path.exists('objects/combined.pickle'):
         os.remove('objects/combined.pickle')
     test = DataPocket('combined')
@@ -90,6 +98,7 @@ def combineAnalysis():
     pickle.dump(test, pkFile)
     
 def priorMath():
+    #help function to train all news sources 
     if os.path.exists('objects/BBC.txt.pickle'):
         os.remove('objects/BBC.txt.pickle')
     if os.path.exists('objects/Fox.txt.pickle'):
@@ -104,10 +113,13 @@ def priorMath():
     dataAnalysis('BBC.txt', True)
     dataAnalysis('Apple.txt', True)
     
-def likelihoodCalc(sample, data,tFreq, tCount):
+def likelihoodCalc(sample, data, tFreq, tCount):
+    # Calculates the log likelifood
+    #Sample - test data object
+    #Data - training data object
+    #tfreq - Consolidated data dictionary
+    #tCount - total word count for consolidated data
     lkProb = 0
-    #lkProb = lkProb + logGaussian(data.avgWordLength, data.stdDevWord, sample.avgWordLength)
-    #lkProb = lkProb + logGaussian(data.avgSentLength, data.stdDevSent, sample.avgSentLength)
     
     for word, freq in sample.wordFreq.items():
         if word in data.wordFreq.keys():
@@ -117,6 +129,8 @@ def likelihoodCalc(sample, data,tFreq, tCount):
     return lkProb
     
 def sourceNewsGuess(sample):
+    # Actual classifier function
+    # Sample: text file with test data 
     if os.path.exists(sample+'.pickle'):
         os.remove(sample+'.pickle')
     
@@ -163,6 +177,7 @@ def sourceNewsGuess(sample):
        
        
 def verificationCheck(verFiles):
+    # helper for checking validation files
     for case, tag in verFiles.items():
         print('---------------------------')
         print("Source: " + tag)
@@ -170,6 +185,8 @@ def verificationCheck(verFiles):
         os.remove("objects/" + case+'.pickle')
 
 def commentScraper(sRed):
+    # scrapes reddit comment data 
+    # sRed - String: subreddit name, do not include the r/
     filept = open(sRed+".txt", "w", encoding="utf-8")
     reddit = praw.Reddit(client_id='VtNzPEQvBnXPraApATXWFg', client_secret='ZPIRrZ5XWNbgWgFvkKPhsVdfVGpTfw', user_agent='Stochastic Project')
     hot_posts = reddit.subreddit(sRed).top(limit=50)
@@ -179,12 +196,14 @@ def commentScraper(sRed):
             filept.write(top_level_comment.body)
             
 def redditPrep():
+    # helper for scraping multiple subreddits
     commentScraper('cars')
     commentScraper('politics')
     commentScraper('army')
     commentScraper('gaming')
     
 def redditAnalysis():
+    # helper to create subreddit DataPockets
     if os.path.exists('objects/cars.txt.pickle'):
         os.remove('objects/cars.txt.pickle')
     if os.path.exists('objects/politics.txt.pickle'):
@@ -202,6 +221,7 @@ def redditAnalysis():
     combineRedditAnalysis()
     
 def combineRedditAnalysis():
+    #combines subreddit dictionaries and word counts
     if os.path.exists('objects/combinedReddit.pickle'):
         os.remove('objects/combinedReddit.pickle')
     test = DataPocket('combined')
@@ -229,6 +249,8 @@ def combineRedditAnalysis():
     pickle.dump(test, pkFile)
     
 def sourceRedditGuess(sample):
+    #Classifier for reddit 
+    #sample - text file with test data
     if os.path.exists(sample+'.pickle'):
         os.remove(sample+'.pickle')
     
@@ -281,22 +303,26 @@ def verificationRedditCheck(verFiles):
         os.remove("objects/"+ case+'.pickle')
 
 def newspaper():
-    priorMath()
-    combineAnalysis()
+    # demo to classify all newspaper tests and verification files included with code
+    #only uncomment to train new model
+    #priorMath()
+    #combineAnalysis()
     
-    #verFiles = {'ver1.txt' : 'Fox', 'ver2.txt': 'CNBC', 'ver3.txt': "BBC", 'ver4.txt': 'Al Jazeera', 'ver5.txt': 'Fox'}
+    verFiles = {'ver1.txt' : 'Fox', 'ver2.txt': 'CNBC', 'ver3.txt': "BBC", 'ver4.txt': 'Al Jazeera', 'ver5.txt': 'Fox'}
     testFiles = {'test1.txt': 'Fox','test2.txt': 'Fox', 'test3.txt': 'Fox', 'test4.txt': 'CNBC', 'test5.txt': 'CNBC', 'test6.txt': 'CNBC'
                  , 'test7.txt': 'BBC', 'test8.txt': 'BBC', 'test9.txt': 'BBC', 'test10.txt': 'Al Jazeera', 'test11.txt': 'Al Jazeera'
                  , 'test12.txt': 'Al Jazeera'}
     
-    #print('----------------Verification----------------')
-    #verificationCheck(verFiles)
+    print('----------------Verification----------------')
+    verificationCheck(verFiles)
     print('----------------Testing----------------')
     verificationCheck(testFiles)
     
 def reddit():
+    # demo to classify all reddit tests files included with code
+    #only uncomment to train new model
     #redditPrep()
-    redditAnalysis()
+    #redditAnalysis()
     
     testFiles = {'red1.txt': 'cars','red2.txt': 'cars', 'red3.txt': 'cars', 'red4.txt': 'cars'
                  , 'red21.txt': 'cars', 'red22.txt': 'cars', 'red23.txt': 'cars', 'red24.txt': 'cars'
@@ -311,6 +337,8 @@ def reddit():
     verificationRedditCheck(testFiles)
     
 def displayStats(name):
+    #displays stats from DataPocket object
+    #name - Datapocket object
         fp = open(name, 'rb')
         data = pickle.load(fp)
         print("Source:", data.source)
@@ -323,6 +351,7 @@ def displayStats(name):
         print('Unique words:', len(data.wordFreq))
         
 def displayAll():
+    # helper to display training data included with code
     buckets = ['Fox.txt.pickle', 'CNBC.txt.pickle','BBC.txt.pickle','Apple.txt.pickle'
                ,'cars.txt.pickle','politics.txt.pickle','army.txt.pickle','gaming.txt.pickle', 'combined.pickle', 'combinedReddit.pickle']
     for thing in buckets:
